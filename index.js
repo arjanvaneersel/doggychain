@@ -157,7 +157,7 @@ $('#registerBtn').click(async function(){
         breed = ($('#regBreed').val()),
         photo_url = ($('#regPhotoURL').val());
 
-  let args = [chip_id, name, breed, photo_url];
+  let args = [chip_id, name, breed, photo_url, true];
   console.log(args)
   //Make the contract call to register the dog with the newly passed values
   await contractCall('registerDog', args, 0);
