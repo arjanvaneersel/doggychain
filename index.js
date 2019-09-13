@@ -146,8 +146,10 @@ $('#registerBtn').click(async function(){
         breed = ($('#regBreed').val()),
         photo_url = ($('#regPhotoURL').val());
 
+  let args = [chip_id, name, breed, photo_url];
+  console.log(args)
   //Make the contract call to register the dog with the newly passed values
-  await contractCall('registerDog', [chip_id, name, breed, photo_url], 0);
+  await contractCall('registerDog', args, 0);
 
   //Add the new created dogobject to our dogarray
   dogArray.push({
