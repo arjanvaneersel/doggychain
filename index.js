@@ -141,18 +141,21 @@ window.addEventListener('load', async () => {
 $('#registerBtn').click(async function(){
   $("#loader").show();
   //Create two new let variables which get the values from the input fields
-  const name = ($('#regName').val()),
-        url = ($('#regUrl').val());
+  const chip_id = ($('#regChipID').val()),
+        name = ($('#regName').val()),
+        breed = ($('#regBreed').val()),
+        photo_url = ($('#regPhotoURL').val());
 
   //Make the contract call to register the dog with the newly passed values
-  await contractCall('registerdog', [url, name], 0);
+  await contractCall('registerDog', [chip_id, name, breed, photo_url], 0);
 
   //Add the new created dogobject to our dogarray
   dogArray.push({
-    creatorName: name,
-    dogUrl: url,
-    index: dogArray.length+1,
-    votes: 0,
+    chip_id: chip_id,
+    //owner: dog.owner,
+    name: name,
+    breed: breed,
+    photo_url: photo_url,
   })
 
   renderdogs();
