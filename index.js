@@ -1,61 +1,63 @@
 const contractSource = `
-  contract MemeVote =
+  contract DoggyChain =
 
-    record meme =
-      { creatorAddress : address,
-        url            : string,
-        name           : string,
-        voteCount      : int }
+  record dog =
+    { chip_id: string,
+      owner: address,
+      name: string,
+      breed: string,
+      photo_url: string }
 
-    record state =
-      { memes      : map(int, meme),
-        memesLength : int }
+  record state =
+    { dogs      : map(string, dog) }
 
-    entrypoint init() =
-      { memes = {},
-        memesLength = 0 }
+  entrypoint init() =
+    { dogs = {} }
+    
+  private function myDogs'(all' : list((string, dog)), dest' : list(dog), key' : address) : list(dog) =
+    switch(all')
+      [] => dest'
+      (_, dog)::tl =>
+        if (dog.owner == key')
+          myDogs'(tl, dog :: dest', key')
+        else myDogs'(tl, dest', key')
 
-    entrypoint getMeme(index : int) : meme =
-      switch(Map.lookup(index, state.memes))
-        None    => abort("There was no meme with this index registered.")
-        Some(x) => x
+  entrypoint myDogs() : list(dog) =
+    myDogs'(Map.to_list(state.dogs), [], Call.caller)
 
-    stateful entrypoint registerMeme(url' : string, name' : string) =
-      let meme = { creatorAddress = Call.caller, url = url', name = name', voteCount = 0}
-      let index = getMemesLength() + 1
-      put(state{ memes[index] = meme, memesLength = index })
+  entrypoint getDog(chip_id' : string) : dog =
+    switch(Map.lookup(chip_id', state.dogs))
+      None    => abort("There is no dog with this chip ID registered.")
+      Some(x) => x
 
-    entrypoint getMemesLength() : int =
-      state.memesLength
+  stateful entrypoint registerDog(chip_id': string, name': string, breed': string, photo_url': string) =
+    if(Map.member(chip_id', state.dogs))
+      abort("This dog is already registered")
 
-    stateful entrypoint voteMeme(index : int) =
-      let meme = getMeme(index)
-      Chain.spend(meme.creatorAddress, Call.value)
-      let updatedVoteCount = meme.voteCount + Call.value
-      let updatedMemes = state.memes{ [index].voteCount = updatedVoteCount }
-      put(state{ memes = updatedMemes })
+    let dog = { owner = Call.caller, chip_id = chip_id', name = name', breed = breed', photo_url = photo_url' }
+    put(state{ dogs[chip_id'] = dog })
 `;
 
-//Address of the meme voting smart contract on the testnet of the aeternity blockchain
-const contractAddress = 'ct_2WRcJSeKyphdnTqRhjLNMyyk2W2QHRgzpYftMM9KcrBRR57akE';
+const contractAddress = 'ct_CifXCdYwZnmsN2eCbvyBZEqNJ2ifyeNbVe2HKLgfGry4Jp1eJ';
 //Create variable for client so it can be used in different functions
 var client = null;
-//Create a new global array for the memes
-var memeArray = [];
-//Create a new variable to store the length of the meme globally
-var memesLength = 0;
+//Create a new global array for the dogs
+var dogArray = [];
+//Create a new variable to store the length of the dog globally
+var dogsLength = 0;
 
-function renderMemes() {
-  //Order the memes array so that the meme with the most votes is on top
-  memeArray = memeArray.sort(function(a,b){return b.votes-a.votes})
+function renderdogs() {
+  //Order the dogs array so that the dog with the most votes is on top
+  //dogArray = dogArray.sort(function(a,b){return b.votes-a.votes})
+  
   //Get the template we created in a block scoped variable
   let template = $('#template').html();
   //Use mustache parse function to speeds up on future uses
   Mustache.parse(template);
   //Create variable with result of render func form template and data
-  let rendered = Mustache.render(template, {memeArray});
+  let rendered = Mustache.render(template, {dogArray});
   //Use jquery to add the result of the rendering to our html
-  $('#memeBody').html(rendered);
+  $('#dogBody').html(rendered);
 }
 
 //Create a asynchronous read call for our smart contract
@@ -87,70 +89,71 @@ window.addEventListener('load', async () => {
   //Initialize the Aepp object through aepp-sdk.browser.js, the base app needs to be running.
   client = await Ae.Aepp();
 
-  //First make a call to get to know how may memes have been created and need to be displayed
-  //Assign the value of meme length to the global variable
-  memesLength = await callStatic('getMemesLength', []);
+  //First make a call to get to know how may dogs have been created and need to be displayed
+  //Assign the value of dog length to the global variable
+  dogs = await callStatic('myDogs', []);
 
-  //Loop over every meme to get all their relevant information
-  for (let i = 1; i <= memesLength; i++) {
+  //Loop over every dog to get all their relevant information
+  for (dog in dogs) {
 
-    //Make the call to the blockchain to get all relevant information on the meme
-    const meme = await callStatic('getMeme', [i]);
+    //Make the call to the blockchain to get all relevant information on the dog
+    //const dog = await callStatic('getdog', [i]);
 
-    //Create meme object with  info from the call and push into the array with all memes
-    memeArray.push({
-      creatorName: meme.name,
-      memeUrl: meme.url,
-      index: i,
-      votes: meme.voteCount,
+    //Create dog object with  info from the call and push into the array with all dogs
+    dogArray.push({
+      chip_id: dog.chip_id,
+      owner: dog.owner,
+      name: dog.name,
+      breed: dog.breed,
+      photo_url: dog.photo_url,
     })
   }
 
-  //Display updated memes
-  renderMemes();
+  //Display updated dogs
+  renderdogs();
 
   //Hide loader animation
   $("#loader").hide();
 });
 
-//If someone clicks to vote on a meme, get the input and execute the voteCall
-jQuery("#memeBody").on("click", ".voteBtn", async function(event){
-  $("#loader").show();
-  //Create two new let block scoped variables, value for the vote input and
-  //index to get the index of the meme on which the user wants to vote
-  let value = $(this).siblings('input').val(),
-      index = event.target.id;
+//If someone clicks to vote on a dog, get the input and execute the voteCall
+// jQuery("#dogBody").on("click", ".voteBtn", async function(event){
+//   $("#loader").show();
+//   //Create two new let block scoped variables, value for the vote input and
+//   //index to get the index of the dog on which the user wants to vote
+//   let value = $(this).siblings('input').val(),
+//       index = event.target.id;
 
-  //Promise to execute execute call for the vote meme function with let values
-  await contractCall('voteMeme', [index], value);
+//   //Promise to execute execute call for the vote dog function with let values
+//   await contractCall('votedog', [index], value);
 
-  //Hide the loading animation after async calls return a value
-  const foundIndex = memeArray.findIndex(meme => meme.index == event.target.id);
-  //console.log(foundIndex);
-  memeArray[foundIndex].votes += parseInt(value, 10);
+//   //Hide the loading animation after async calls return a value
+//   const foundIndex = dogArray.findIndex(dog => dog.index == event.target.id);
+//   //console.log(foundIndex);
+//   dogArray[foundIndex].votes += parseInt(value, 10);
 
-  renderMemes();
-  $("#loader").hide();
-});
+//   renderdogs();
+//   $("#loader").hide();
+// });
 
-//If someone clicks to register a meme, get the input and execute the registerCall
+//If someone clicks to register a dog, get the input and execute the registerCall
 $('#registerBtn').click(async function(){
   $("#loader").show();
   //Create two new let variables which get the values from the input fields
   const name = ($('#regName').val()),
         url = ($('#regUrl').val());
 
-  //Make the contract call to register the meme with the newly passed values
-  await contractCall('registerMeme', [url, name], 0);
+  //Make the contract call to register the dog with the newly passed values
+  await contractCall('registerdog', [url, name], 0);
 
-  //Add the new created memeobject to our memearray
-  memeArray.push({
+  //Add the new created dogobject to our dogarray
+  dogArray.push({
     creatorName: name,
-    memeUrl: url,
-    index: memeArray.length+1,
+    dogUrl: url,
+    index: dogArray.length+1,
     votes: 0,
   })
 
-  renderMemes();
+  renderdogs();
   $("#loader").hide();
 });
