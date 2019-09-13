@@ -6,7 +6,8 @@ const contractSource = `
       owner: address,
       name: string,
       breed: string,
-      photo_url: string }
+      photo_url: string, 
+      missing: bool }
 
   record state =
     { dogs      : map(string, dog) }
@@ -18,27 +19,36 @@ const contractSource = `
     switch(all')
       [] => dest'
       (_, dog)::tl =>
-        if (dog.owner == key')
-          myDogs'(tl, dog :: dest', key')
+        if (dog.owner == key') myDogs'(tl, dog :: dest', key')
         else myDogs'(tl, dest', key')
 
   entrypoint myDogs() : list(dog) =
     myDogs'(Map.to_list(state.dogs), [], Call.caller)
+    
+  private function missingDogs'(all' : list((string, dog)), dest' : list(dog)) : list(dog) =
+    switch(all')
+      [] => dest'
+      (_, dog)::tl =>
+        if (dog.missing) missingDogs'(tl, dog :: dest')
+        else missingDogs'(tl, dest')
+        
+  entrypoint missingDogs() : list(dog) = 
+    missingDogs'(Map.to_list(state.dogs), [])
 
   entrypoint getDog(chip_id' : string) : dog =
     switch(Map.lookup(chip_id', state.dogs))
       None    => abort("There is no dog with this chip ID registered.")
       Some(x) => x
 
-  stateful entrypoint registerDog(chip_id': string, name': string, breed': string, photo_url': string) =
+  stateful entrypoint registerDog(chip_id': string, name': string, breed': string, photo_url': string, missing': bool) =
     if(Map.member(chip_id', state.dogs))
       abort("This dog is already registered")
 
-    let dog = { owner = Call.caller, chip_id = chip_id', name = name', breed = breed', photo_url = photo_url' }
+    let dog = { owner = Call.caller, chip_id = chip_id', name = name', breed = breed', photo_url = photo_url', missing = missing' }
     put(state{ dogs[chip_id'] = dog })
 `;
 
-const contractAddress = 'ct_CifXCdYwZnmsN2eCbvyBZEqNJ2ifyeNbVe2HKLgfGry4Jp1eJ';
+const contractAddress = 'ct_2MJqPZtai8coKmyo9ZnjCGUu9RREUHkFssuTFgmHuUXCcbWDSt';
 //Create variable for client so it can be used in different functions
 var client = null;
 //Create a new global array for the dogs
@@ -91,7 +101,7 @@ window.addEventListener('load', async () => {
 
   //First make a call to get to know how may dogs have been created and need to be displayed
   //Assign the value of dog length to the global variable
-  dogs = await callStatic('myDogs', []);
+  dogs = await callStatic('missingDogs', []);
 
   //Loop over every dog to get all their relevant information
   for (dog in dogs) {
@@ -107,6 +117,7 @@ window.addEventListener('load', async () => {
       name: dog.name,
       breed: dog.breed,
       photo_url: dog.photo_url,
+      missing: dog.missing,
     })
   }
 
