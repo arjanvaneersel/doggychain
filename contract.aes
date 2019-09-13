@@ -1,0 +1,34 @@
+contract DoggyChain =
+
+  record dog =
+    { chip_id: string,
+      owner: address,
+      name: string,
+      breed: string,
+      photo_url: string }
+
+  record state =
+    { dogs: map(string, dog) }
+
+  entrypoint init() =
+    { dogs = {} }
+    
+  private function myDogs'(all': list((string, dog)), dest': list(dog), key': address) : list(dog) =
+    switch(all')
+      [] => dest'
+      (_, dog)::tl =>
+        if (dog.owner == key')
+          myDogs'(tl, dog :: dest', key')
+        else myDogs'(tl, dest', key')
+  
+  entrypoint myDogs(): list(dog) =
+    myDogs'(Map.to_list(state.dogs), [], Call.caller)
+
+  entrypoint getDog(chip_id': string) : dog =
+  	switch(Map.lookup(chip_id', state.dogs))
+	    None    => abort("There is no dog with this chip ID registered.")
+	    Some(x) => x
+
+  stateful entrypoint registerDog(chip_id': string, name': string, breed': string, photo_url': string) =
+    let dog = { owner = Call.caller, chip_id = chip_id', name = name', breed = breed', photo_url = photo_url' }
+    put(state{ dogs[chip_id'] = dog })
