@@ -95,6 +95,7 @@ window.addEventListener('load', async () => {
 
   //Loop over every dog to get all their relevant information
   for (dog in dogs) {
+    console.log(dog);
 
     //Make the call to the blockchain to get all relevant information on the dog
     //const dog = await callStatic('getdog', [i]);
